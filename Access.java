@@ -21,8 +21,6 @@ public class Access extends JFrame {
         setLocationRelativeTo(null);
 
         setLayout(new BorderLayout());
-
-        // ------------------ PANEL SUPERIOR ------------------
         JPanel panelFiltros = new JPanel(new GridLayout(5, 2, 10, 10));
 
         cmbLocalidad = new JComboBox<>();
@@ -47,20 +45,17 @@ public class Access extends JFrame {
 
         add(panelFiltros, BorderLayout.NORTH);
 
-        // ------------------ TABLA ------------------
         modeloTabla = new DefaultTableModel(new String[]{
-            "Prestador", "Dirección", "Teléfono", "Email", "Referencia"
+                "Prestador", "Dirección", "Teléfono", "Email", "Referencia"
         }, 0);
 
         tabla = new JTable(modeloTabla);
         add(new JScrollPane(tabla), BorderLayout.CENTER);
 
-        // ------------------ EVENTOS ------------------
         cargarLocalidades();
         cargarTiposDisca();
         cargarServicios();
 
-        // Evento: cuando el usuario cambia de servicio → cargar subservicios
         cmbServicio.addActionListener(e -> cargarSubServicios());
 
         btnBuscar.addActionListener(e -> buscar());
@@ -68,18 +63,21 @@ public class Access extends JFrame {
         setVisible(true);
     }
 
-    // -------------------------------------------------------------
-    // Cargar combos
-    // -------------------------------------------------------------
-
     private void cargarLocalidades() {
-        try (Connection con = dbConector.conectar();
-             PreparedStatement ps = con.prepareStatement("SELECT loc_id, loc_nombre FROM localidad ORDER BY loc_nombre");
-             ResultSet rs = ps.executeQuery()) {
+        try {
+            dbConector.conectar();
+            Connection con = dbConector.getConexion();
+
+            PreparedStatement ps = con.prepareStatement(
+                    "SELECT loc_id, loc_nombre FROM localidad ORDER BY loc_nombre");
+            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
                 cmbLocalidad.addItem(new Item(rs.getInt(1), rs.getString(2)));
             }
+
+            rs.close();
+            ps.close();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -87,13 +85,20 @@ public class Access extends JFrame {
     }
 
     private void cargarTiposDisca() {
-        try (Connection con = dbConector.conectar();
-             PreparedStatement ps = con.prepareStatement("SELECT td_id, td_nombre FROM tipo_disca ORDER BY td_nombre");
-             ResultSet rs = ps.executeQuery()) {
+        try {
+            dbConector.conectar();
+            Connection con = dbConector.getConexion();
+
+            PreparedStatement ps = con.prepareStatement(
+                    "SELECT td_id, td_nombre FROM tipo_disca ORDER BY td_nombre");
+            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
                 cmbTipoDisca.addItem(new Item(rs.getInt(1), rs.getString(2)));
             }
+
+            rs.close();
+            ps.close();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -101,13 +106,20 @@ public class Access extends JFrame {
     }
 
     private void cargarServicios() {
-        try (Connection con = dbConector.conectar();
-             PreparedStatement ps = con.prepareStatement("SELECT serv_id, serv_nombre FROM servicios ORDER BY serv_nombre");
-             ResultSet rs = ps.executeQuery()) {
+        try {
+            dbConector.conectar();
+            Connection con = dbConector.getConexion();
+
+            PreparedStatement ps = con.prepareStatement(
+                    "SELECT serv_id, serv_nombre FROM servicios ORDER BY serv_nombre");
+            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
                 cmbServicio.addItem(new Item(rs.getInt(1), rs.getString(2)));
             }
+
+            rs.close();
+            ps.close();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -120,26 +132,27 @@ public class Access extends JFrame {
         Item serv = (Item) cmbServicio.getSelectedItem();
         if (serv == null) return;
 
-        try (Connection con = dbConector.conectar();
-             PreparedStatement ps = con.prepareStatement(
-                     "SELECT sserv_id, sserv_nombre FROM sub_servicios WHERE serv_id = ? ORDER BY sserv_nombre")) {
+        try {
+            dbConector.conectar();
+            Connection con = dbConector.getConexion();
+
+            PreparedStatement ps = con.prepareStatement(
+                    "SELECT sserv_id, sserv_nombre FROM sub_servicios WHERE serv_id = ? ORDER BY sserv_nombre");
 
             ps.setInt(1, serv.id);
 
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    cmbSubServicio.addItem(new Item(rs.getInt(1), rs.getString(2)));
-                }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                cmbSubServicio.addItem(new Item(rs.getInt(1), rs.getString(2)));
             }
+
+            rs.close();
+            ps.close();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
-    // -------------------------------------------------------------
-    // Búsqueda final
-    // -------------------------------------------------------------
 
     private void buscar() {
         modeloTabla.setRowCount(0);
@@ -153,17 +166,19 @@ public class Access extends JFrame {
 
         String sql =
                 "SELECT pr.pre_nombre, ps.direccion, ps.telefono, ps.email, ps.referencias " +
-                "FROM pre_serv ps " +
-                "JOIN prestadores pr ON pr.pre_id = ps.pre_id " +
-                "JOIN sub_servicios ss ON ss.sserv_id = ps.sserv_id " +
-                "LEFT JOIN accesibilidad acc ON acc.preserv_id = ps.preserv_id " +
-                "WHERE ps.loc_id = ? " +
-                "AND acc.tp_id = ? " +
-                "AND ss.serv_id = ? " +
-                "AND ps.sserv_id = ?";
+                        "FROM pre_serv ps " +
+                        "JOIN prestadores pr ON pr.pre_id = ps.pre_id " +
+                        "JOIN sub_servicios ss ON ss.sserv_id = ps.sserv_id " +
+                        "LEFT JOIN accesibilidad acc ON acc.preserv_id = ps.preserv_id " +
+                        "WHERE ps.loc_id = ? " +
+                        "AND acc.tp_id = ? " +
+                        "AND ss.serv_id = ? " +
+                        "AND ps.sserv_id = ?";
 
-        try (Connection con = dbConector.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        try {
+            dbConector.conectar();
+            Connection con = dbConector.getConexion();
+            PreparedStatement ps = con.prepareStatement(sql);
 
             ps.setInt(1, loc.id);
             ps.setInt(2, tipo.id);
@@ -182,14 +197,13 @@ public class Access extends JFrame {
                 });
             }
 
+            rs.close();
+            ps.close();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
-    // -------------------------------------------------------------
-    // Clase auxiliar para llenar combos
-    // -------------------------------------------------------------
 
     class Item {
         int id;
@@ -205,11 +219,9 @@ public class Access extends JFrame {
         }
     }
 
-    // -------------------------------------------------------------
-
     public static void main(String[] args) {
-    SwingUtilities.invokeLater(() -> {
-        new Access();
-        });
+        SwingUtilities.invokeLater(() -> new Access());
     }
 }
+
+
