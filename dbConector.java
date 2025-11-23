@@ -23,25 +23,37 @@ public class dbConector {
         return conexion;
     }
 
-    public static List<SubServicio> getSubServicio() {
+
+    
+    public static List<SubServicio> getSubServiciosPorServicio(int servId) {
         ArrayList<SubServicio> lista = new ArrayList<>();
 
-        String sql = "SELECT sserv_id, sserv_nombre FROM sub_servicios ORDER BY sserv_nombre";
+        String sql = "SELECT sserv_id, sserv_nombre FROM sub_servicios WHERE serv_id = ? ORDER BY sserv_nombre";
 
         try {
+            conectar();
             PreparedStatement ps = conexion.prepareStatement(sql);
+            ps.setInt(1, servId);
+
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                lista.add(new SubServicio(rs.getInt("sserv_id"), rs.getString("sserv_nombre")));
+                lista.add(new SubServicio(
+                        rs.getInt("sserv_id"),
+                        rs.getString("sserv_nombre")
+                ));
             }
+
+            rs.close();
+            ps.close();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return lista;
+     return lista;
     }
+
 
     public static List<Servicio> getServicios() {
         ArrayList<Servicio> lista = new ArrayList<>();
@@ -166,10 +178,10 @@ public class dbConector {
         return null;
     }
     
-    public static boolean insertarPreServ(
-        int pre_id, int loc_id, int sserv_id,
-        String direccion, String telefono,
-        String email, String referencias) {
+    public static Integer insertarPreServ(
+            int pre_id, int loc_id, int sserv_id,
+            String direccion, String telefono,
+            String email, String referencias) {
 
         String sql =
                 "INSERT INTO pre_serv " +
@@ -177,7 +189,7 @@ public class dbConector {
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try {
-            PreparedStatement ps = conexion.prepareStatement(sql);
+            PreparedStatement ps = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, pre_id);
             ps.setInt(2, sserv_id);
             ps.setInt(3, loc_id);
@@ -185,6 +197,31 @@ public class dbConector {
             ps.setString(5, telefono);
             ps.setString(6, email);
             ps.setString(7, referencias);
+
+            int filas = ps.executeUpdate();
+
+            if (filas > 0) {
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+    
+    public static boolean insertarAccesibilidad(int preserv_id, int td_id) {
+
+        String sql = "INSERT INTO accesibilidad (preserv_id, td_id) VALUES (?, ?)";
+
+        try {
+            PreparedStatement ps = conexion.prepareStatement(sql);
+            ps.setInt(1, preserv_id);
+            ps.setInt(2, td_id);
 
             ps.executeUpdate();
             return true;
@@ -194,5 +231,5 @@ public class dbConector {
             return false;
         }
     }
+    
 }
-
