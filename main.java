@@ -6,6 +6,8 @@ public class main {
 
     public static void main(String[] args) {
 
+        UIStyle.apply();
+        
         try {
             dbConector.conectar();
         } catch (Exception e) {
